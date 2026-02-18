@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  jenkins:
+    build: ./jenkins
+    container_name: jenkins
+    privileged: true
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./Jenkinsfile:/var/jenkins_home/workspace/voting-app/Jenkinsfile
+    networks:
+      - jenkins-net
+
+volumes:
+  jenkins_home:
+    name: jenkins_home
+
+networks:
+  jenkins-net:
+    driver: bridge

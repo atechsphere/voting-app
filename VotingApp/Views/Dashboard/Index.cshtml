@@ -1,0 +1,117 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row">
+    <div class="col-12">
+        <h2><i class="bi bi-speedometer2"></i> Your Voting Dashboard</h2>
+        <hr />
+    </div>
+</div>
+
+@if (Model.HasVoted)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-success">
+                <h4><i class="bi bi-check-circle"></i> You have already voted!</h4>
+                <p><strong>Your vote:</strong> @Model.VotedCandidate</p>
+                <p><strong>Voted on:</strong> @Model.VotedAt?.ToString("MMMM dd, yyyy 'at' hh:mm tt") UTC</p>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-check2-square"></i> Cast Your Vote</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Select one candidate below. You can only vote once, so choose carefully!</p>
+                    
+                    <form asp-action="Vote" method="post">
+                        @foreach (var candidate in VoteOptions.Candidates)
+                        {
+                            <div class="mb-3">
+                                <div class="form-check card p-3 @(Model.VoteForm.SelectedCandidate == candidate ? "border-primary" : "")">
+                                    <input class="form-check-input" type="radio" 
+                                           name="VoteForm.SelectedCandidate" 
+                                           id="candidate_@candidate.GetHashCode()" 
+                                           value="@candidate"
+                                           @(Model.VoteForm.SelectedCandidate == candidate ? "checked" : "") />
+                                    <label class="form-check-label w-100" for="candidate_@candidate.GetHashCode()">
+                                        <strong>@candidate</strong>
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg" 
+                                    onclick="return confirm('Are you sure you want to submit your vote? This cannot be changed!')">
+                                <i class="bi bi-check2-square"></i> Submit My Vote
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5><i class="bi bi-info-circle"></i> Voting Rules</h5>
+                    <ul>
+                        <li>Each user can vote only once</li>
+                        <li>Votes cannot be changed after submission</li>
+                        <li>Your vote is anonymous</li>
+                        <li>Results are shown in real-time</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row">
+    <div class="col-12">
+        <h3><i class="bi bi-graph-up"></i> Current Voting Results</h3>
+        <p class="text-muted">Total votes cast: <strong>@Model.TotalVotes</strong></p>
+        
+        <div class="card shadow">
+            <div class="card-body">
+                @foreach (var result in Model.VoteResults.OrderByDescending(r => r.Value))
+                {
+                    var percentage = Model.TotalVotes > 0 ? (double)result.Value / Model.TotalVotes * 100 : 0;
+                    var barColor = result.Key == Model.VotedCandidate ? "bg-success" : "bg-primary";
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <strong>
+                                @result.Key
+                                @if (result.Key == Model.VotedCandidate)
+                                {
+                                    <span class="badge bg-success ms-2">Your Vote</span>
+                                }
+                            </strong>
+                            <span>@result.Value votes (@percentage.ToString("F1")%)</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar @barColor" 
+                                 role="progressbar" 
+                                 style="width: @percentage%" 
+                                 aria-valuenow="@percentage" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

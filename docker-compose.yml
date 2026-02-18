@@ -1,0 +1,56 @@
+services:
+  # MySQL Database
+  mysql:
+    image: localhost:5000/mysql:8.0
+    container_name: voting-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: RootPass123!
+      MYSQL_DATABASE: votingdb
+      MYSQL_USER: votinguser
+      MYSQL_PASSWORD: VotingPass123!
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - voting-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pRootPass123!"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    ports:
+      - "3308:3306"
+
+  # Voting Application
+  voting-app:
+    image: localhost:5000/voting-app:latest
+    container_name: voting-app
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8087
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=votingdb;User=votinguser;Password=VotingPass123!;
+    ports:
+      - "8087:8087"
+    networks:
+      - voting-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  voting-net:
+    driver: bridge
+    name: voting-net-v2
+
+volumes:
+  db_data:
+    name: voting_db_data_v2

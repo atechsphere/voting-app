@@ -1,0 +1,98 @@
+@model HomeViewModel
+@{
+    ViewData["Title"] = "Home - Voting Results";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="jumbotron bg-primary text-white p-5 rounded-3 mb-4">
+            <h1 class="display-4"><i class="bi bi-bar-chart-line"></i> Live Voting Results</h1>
+            <p class="lead">Welcome to our secure online voting platform. Cast your vote and see the results in real-time!</p>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h2><i class="bi bi-people"></i></h2>
+                <h3>@Model.TotalVoters</h3>
+                <p class="mb-0">Registered Voters</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h2><i class="bi bi-check2-square"></i></h2>
+                <h3>@Model.TotalVotes</h3>
+                <p class="mb-0">Votes Cast</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h2><i class="bi bi-percent"></i></h2>
+                <h3>@(Model.TotalVoters > 0 ? Math.Round((double)Model.TotalVotes / Model.TotalVoters * 100, 1) : 0)%</h3>
+                <p class="mb-0">Turnout</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.IsUserLoggedIn)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h4><i class="bi bi-info-circle"></i> Want to vote?</h4>
+                <p>You need to register or login to cast your vote. Each user can vote only once.</p>
+                <a asp-controller="Account" asp-action="Register" class="btn btn-primary">Register Now</a>
+                <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary">Login</a>
+            </div>
+        </div>
+    </div>
+}
+else if (!Model.HasUserVoted)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-success">
+                <h4><i class="bi bi-person-check"></i> You're logged in!</h4>
+                <p>Visit your dashboard to cast your vote.</p>
+                <a asp-controller="Dashboard" asp-action="Index" class="btn btn-success">Go to Dashboard</a>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row">
+    <div class="col-12">
+        <h3><i class="bi bi-graph-up"></i> Current Results</h3>
+        <div class="card">
+            <div class="card-body">
+                @foreach (var result in Model.VoteResults.OrderByDescending(r => r.Value))
+                {
+                    var percentage = Model.TotalVotes > 0 ? (double)result.Value / Model.TotalVotes * 100 : 0;
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <strong>@result.Key</strong>
+                            <span>@result.Value votes (@percentage.ToString("F1")%)</span>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-primary" 
+                                 role="progressbar" 
+                                 style="width: @percentage%" 
+                                 aria-valuenow="@percentage" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
