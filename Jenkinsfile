@@ -95,8 +95,8 @@ pipeline {
                     sh '''
                         docker stop voting-mysql voting-app 2>/dev/null || true
                         docker rm voting-mysql voting-app 2>/dev/null || true
-                        docker-compose pull || true
-                        docker-compose up -d
+                        docker compose pull || true
+                        docker compose up -d
                         sleep 30
                     '''
                 }
@@ -129,7 +129,7 @@ pipeline {
         }
         failure {
             echo '❌ Deployment failed!'
-            sh 'docker-compose logs --tail=50 || true'
+            sh 'docker compose logs --tail=50 || true'
         }
         always {
             sh 'docker image prune -f || true'
