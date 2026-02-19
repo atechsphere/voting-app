@@ -1,5 +1,4 @@
 services:
-  # MySQL Database
   mysql:
     image: localhost:5000/mysql:8.0
     container_name: voting-mysql
@@ -16,14 +15,12 @@ services:
       - voting-net
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pRootPass123!"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
     ports:
       - "3308:3306"
 
-  # Voting Application
   voting-app:
     image: localhost:5000/voting-app:latest
     container_name: voting-app
@@ -31,7 +28,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8087
-      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=votingdb;User=votinguser;Password=VotingPass123!;
+      # Updated Connection String
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=votingdb;User=votinguser;Password=VotingPass123!;AllowPublicKeyRetrieval=True;SSLMode=None;
     ports:
       - "8087:8087"
     networks:
@@ -39,12 +37,6 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
 networks:
   voting-net:
