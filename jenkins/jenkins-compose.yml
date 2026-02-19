@@ -1,48 +1,30 @@
+version: '3.8'
+
 services:
-  mysql:
-    image: localhost:5000/mysql:8.0
-    container_name: voting-mysql
+  jenkins:
+    build: 
+      context: ..
+      dockerfile: jenkins/Dockerfile
+    container_name: jenkins
+    privileged: true
+    user: root
     restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
     environment:
-      MYSQL_ROOT_PASSWORD: RootPass123!
-      MYSQL_DATABASE: votingdb
-      MYSQL_USER: votinguser
-      MYSQL_PASSWORD: VotingPass123!
+      - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
-      - db_data:/var/lib/mysql
-      - ./mysql-init:/docker-entrypoint-initdb.d
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Remove the single Jenkinsfile mount; let Git Pipeline handle it
     networks:
-      - voting-net
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pRootPass123!"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    ports:
-      - "3308:3306"
-
-  voting-app:
-    image: localhost:5000/voting-app:latest
-    container_name: voting-app
-    restart: unless-stopped
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:8087
-      # Updated Connection String
-      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=votingdb;User=votinguser;Password=VotingPass123!;AllowPublicKeyRetrieval=True;SSLMode=None;
-    ports:
-      - "8087:8087"
-    networks:
-      - voting-net
-    depends_on:
-      mysql:
-        condition: service_healthy
-
-networks:
-  voting-net:
-    driver: bridge
-    name: voting-net-v2
+      - jenkins-net
 
 volumes:
-  db_data:
-    name: voting_db_data_v2
+  jenkins_home:
+    name: jenkins_home
+
+networks:
+  jenkins-net:
+    driver: bridge
