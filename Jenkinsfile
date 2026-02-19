@@ -11,7 +11,7 @@ pipeline {
     stages {
         stage('Cleanup Infrastructure') {
             steps {
-                echo '🧹 Wiping old environment for a clean start...'
+                echo '🧹 Wiping old environment...'
                 script {
                     sh '''
                         docker stop voting-app voting-mysql registry 2>/dev/null || true
@@ -30,14 +30,9 @@ pipeline {
             }
         }
         
-        stage('Checkout Code') {
+        stage('Checkout & Build') {
             steps {
                 checkout scm
-            }
-        }
-        
-        stage('Restore & Build App') {
-            steps {
                 dir('VotingApp') {
                     sh 'dotnet restore'
                     sh 'dotnet build --configuration Release --no-restore'
@@ -45,7 +40,7 @@ pipeline {
             }
         }
         
-        stage('Build & Push Docker Images') {
+        stage('Build & Push Images') {
             steps {
                 script {
                     dir('VotingApp') {
@@ -61,32 +56,14 @@ pipeline {
             }
         }
         
-        stage('Deploy Application') {
+        stage('Deploy') {
             steps {
                 script {
                     sh '''
                         docker compose pull
                         docker compose up -d
-                        echo "⏳ Waiting 45 seconds for MySQL Init and EF Migrations..."
+                        echo "⏳ Waiting for migrations..."
                         sleep 45
-                    '''
-                }
-            }
-        }
-        
-        stage('Wait for MySQL Health') {
-            steps {
-                script {
-                    sh '''
-                        for i in {1..20}; do
-                            if docker exec voting-mysql mysqladmin ping -h localhost -u root -pRootPass123! 2>/dev/null; then
-                                echo "✅ MySQL is responding!"
-                                exit 0
-                            fi
-                            echo "Waiting for MySQL socket..."
-                            sleep 3
-                        done
-                        exit 1
                     '''
                 }
             }
@@ -112,11 +89,6 @@ pipeline {
                 }
             }
         }
-
-                    '''
-                }
-            }
-        }
     }
     
     post {
@@ -124,11 +96,8 @@ pipeline {
             echo '🚀 DEPLOYMENT SUCCESSFUL! Access at http://localhost:8087'
         }
         failure {
-            echo '❌ DEPLOYMENT FAILED! Dumping logs...'
-            sh 'docker compose logs --tail=100'
-        }
-        always {
-            sh 'docker image prune -f || true'
+            echo '❌ DEPLOYMENT FAILED!'
+            sh 'docker compose logs --tail=100 || true'
         }
     }
 }
