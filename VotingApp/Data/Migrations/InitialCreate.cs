@@ -16,7 +16,7 @@ public partial class InitialCreate : Migration
                 FirstName = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true),
                 LastName = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true),
                 CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                VotedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                VotedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                 UserName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
                 NormalizedUserName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
                 Email = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
