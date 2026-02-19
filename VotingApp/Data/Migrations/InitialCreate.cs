@@ -1,7 +1,6 @@
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace VotingApp.Data.Migrations;
 
@@ -13,8 +12,7 @@ public partial class InitialCreate : Migration
             name: "AspNetUsers",
             columns: table => new
             {
-                Id = table.Column<string>(type: "varchar(255)", nullable: false)
-                    .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                Id = table.Column<string>(type: "varchar(255)", nullable: false),
                 FirstName = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true),
                 LastName = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true),
                 CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
@@ -43,8 +41,7 @@ public partial class InitialCreate : Migration
             name: "AspNetRoles",
             columns: table => new
             {
-                Id = table.Column<string>(type: "varchar(255)", nullable: false)
-                    .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                Id = table.Column<string>(type: "varchar(255)", nullable: false),
                 Name = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
                 NormalizedName = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: true),
                 ConcurrencyStamp = table.Column<string>(type: "longtext", nullable: true)
@@ -62,11 +59,7 @@ public partial class InitialCreate : Migration
                     .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                 UserId = table.Column<string>(type: "varchar(255)", nullable: false),
                 Candidate = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
-<<<<<<< HEAD
-                VotedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
-=======
                 VotedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
->>>>>>> 881d52738b3504cb23ce0dd2facb65f3eb46129e
             },
             constraints: table =>
             {
@@ -163,75 +156,10 @@ public partial class InitialCreate : Migration
                     principalColumn: "Id",
                     onDelete: ReferentialAction.Cascade);
             });
-
-        migrationBuilder.CreateTable(
-            name: "AspNetRoleClaims",
-            columns: table => new
-            {
-                Id = table.Column<int>(type: "int", nullable: false)
-                    .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                RoleId = table.Column<string>(type: "varchar(255)", nullable: false),
-                ClaimType = table.Column<string>(type: "longtext", nullable: true),
-                ClaimValue = table.Column<string>(type: "longtext", nullable: true)
-            },
-            constraints: table =>
-            {
-                table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
-                table.ForeignKey(
-                    name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
-                    column: x => x.RoleId,
-                    principalTable: "AspNetRoles",
-                    principalColumn: "Id",
-                    onDelete: ReferentialAction.Cascade);
-            });
-
-        migrationBuilder.CreateIndex(
-            name: "IX_AspNetRoleClaims_RoleId",
-            table: "AspNetRoleClaims",
-            column: "RoleId");
-
-        migrationBuilder.CreateIndex(
-            name: "RoleNameIndex",
-            table: "AspNetRoles",
-            column: "NormalizedName",
-            unique: true);
-
-        migrationBuilder.CreateIndex(
-            name: "IX_AspNetUserClaims_UserId",
-            table: "AspNetUserClaims",
-            column: "UserId");
-
-        migrationBuilder.CreateIndex(
-            name: "IX_AspNetUserLogins_UserId",
-            table: "AspNetUserLogins",
-            column: "UserId");
-
-        migrationBuilder.CreateIndex(
-            name: "EmailIndex",
-            table: "AspNetUsers",
-            column: "NormalizedEmail");
-
-        migrationBuilder.CreateIndex(
-            name: "UserNameIndex",
-            table: "AspNetUsers",
-            column: "NormalizedUserName",
-            unique: true);
-
-        migrationBuilder.CreateIndex(
-            name: "IX_AspNetUserRoles_RoleId",
-            table: "AspNetUserRoles",
-            column: "RoleId");
-
-        migrationBuilder.CreateIndex(
-            name: "IX_Votes_UserId",
-            table: "Votes",
-            column: "UserId",
-            unique: true);
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropTable(name: "AspNetRoleClaims");
         migrationBuilder.DropTable(name: "AspNetUserClaims");
         migrationBuilder.DropTable(name: "AspNetUserLogins");
         migrationBuilder.DropTable(name: "AspNetUserRoles");
