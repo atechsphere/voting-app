@@ -62,7 +62,11 @@ public partial class InitialCreate : Migration
                     .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                 UserId = table.Column<string>(type: "varchar(255)", nullable: false),
                 Candidate = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
+<<<<<<< HEAD
                 VotedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+=======
+                VotedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+>>>>>>> 881d52738b3504cb23ce0dd2facb65f3eb46129e
             },
             constraints: table =>
             {

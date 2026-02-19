@@ -125,7 +125,11 @@ The Jenkins pipeline automates:
 
 ```bash
 cd jenkins
+<<<<<<< HEAD
 docker compose  -f jenkins-compose.yml up -d
+=======
+docker-compose -f jenkins-compose.yml up -d
+>>>>>>> 881d52738b3504cb23ce0dd2facb65f3eb46129e
 ```
 
 Access Jenkins at: **http://localhost:8080**
@@ -180,11 +184,19 @@ docker build -t voting-app:dev .
 
 ```bash
 # All services
+<<<<<<< HEAD
 docker compose  logs -f
 
 # Specific service
 docker compose  logs -f voting-app
 docker compose  logs -f mysql
+=======
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f voting-app
+docker-compose logs -f mysql
+>>>>>>> 881d52738b3504cb23ce0dd2facb65f3eb46129e
 ```
 
 ### Common Issues
@@ -194,7 +206,11 @@ docker compose  logs -f mysql
    - Check credentials in docker-compose.yml
 
 2. **Application Won't Start**
+<<<<<<< HEAD
    - Check logs: `docker compose  logs voting-app`
+=======
+   - Check logs: `docker-compose logs voting-app`
+>>>>>>> 881d52738b3504cb23ce0dd2facb65f3eb46129e
    - Verify database connection
 
 3. **Registry Not Accessible**
