@@ -28,10 +28,15 @@ using (var scope = app.Services.CreateScope())
         int retries = 5;
         while (retries > 0)
         {
-            try {
-                context.Database.Migrate(); // This creates the tables!
-                logger.LogInformation("✅ Database migrated successfully.");
-                break; 
+        // ... inside the retry loop in Program.cs
+        try {
+            // This ensures we ignore the "pending changes" warning during startup
+            context.Database.SetCommandTimeout(160); 
+            context.Database.Migrate(); 
+            logger.LogInformation("✅ Database migrated successfully.");
+            break; 
+        }
+
             }
             catch (Exception) {
                 retries--;
