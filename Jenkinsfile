@@ -14,22 +14,17 @@ pipeline {
                 echo '🧹 Cleaning up existing infrastructure...'
                 script {
                     sh '''
-                        echo "=== Stopping all containers ==="
+                        echo "=== Stopping and Removing All Components ==="
                         docker stop voting-app voting-mysql registry 2>/dev/null || true
-                        
-                        echo "=== Removing all containers ==="
                         docker rm voting-app voting-mysql registry 2>/dev/null || true
                         
-                        echo "=== Removing application images ==="
+                        echo "=== Removing Application Images ==="
                         docker rmi localhost:5000/voting-app:latest 2>/dev/null || true
                         docker rmi localhost:5000/mysql:8.0 2>/dev/null || true
-                        docker rmi localhost:5000/mysql:latest 2>/dev/null || true
                         
-                        echo "=== Removing volumes ==="
+                        echo "=== Removing Volumes and Networks ==="
                         docker volume rm voting_db_data_v2 2>/dev/null || true
                         docker volume rm registry_data 2>/dev/null || true
-                        
-                        echo "=== Removing networks ==="
                         docker network rm voting-net-v2 2>/dev/null || true
                         
                         echo "=== Cleanup complete ==="
@@ -92,7 +87,7 @@ pipeline {
         stage('Push to Local Registry') {
             steps {
                 sh """
-                    docker push ${APP_IMAGE}:${IMAGE_TAG} || true
+                    docker push ${APP_IMAGE}:${IMAGE_TAG}
                     docker push ${APP_IMAGE}:latest
                     docker push ${MYSQL_IMAGE}:8.0
                     docker push ${MYSQL_IMAGE}:latest
@@ -104,10 +99,11 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        # Remove the manual network create to avoid 'incorrect label' error
+                        # Ensure no manual network exists so Compose can create it with correct labels
                         docker network rm voting-net-v2 2>/dev/null || true
-                        docker compose pull || true
+                        docker compose pull
                         docker compose up -d
+                        echo "Waiting for services to initialize..."
                         sleep 20
                     '''
                 }
@@ -118,6 +114,7 @@ pipeline {
             steps {
                 script {
                     sh '''
+                        echo "Checking MySQL health..."
                         for i in {1..30}; do
                             if docker exec voting-mysql mysqladmin ping -h localhost -u root -pRootPass123! 2>/dev/null; then
                                 echo "✓ MySQL is ready"
@@ -125,6 +122,8 @@ pipeline {
                             fi
                             sleep 2
                         done
+                        echo "❌ MySQL failed to start"
+                        exit 1
                     '''
                 }
             }
@@ -134,15 +133,17 @@ pipeline {
             steps {
                 script {
                     sh '''
+                        echo "Checking Application health at http://localhost:8087..."
                         for i in {1..30}; do
                             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8087/ 2>/dev/null || echo "000")
                             if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
-                                echo "✓ Application is ready"
+                                echo "✓ Application is ready (HTTP $HTTP_CODE)"
                                 exit 0
                             fi
                             sleep 3
                         done
-                        docker compose logs --tail=30 voting-app
+                        echo "❌ Application failed to respond"
+                        docker compose logs voting-app
                         exit 1
                     '''
                 }
@@ -152,9 +153,9 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                    echo "=== Container Status ==="
+                    echo "=== Final Container Status ==="
                     docker compose ps
-                    echo "=== Registry Contents ==="
+                    echo "=== Registry Catalog ==="
                     curl -s http://localhost:5000/v2/_catalog
                 '''
             }
@@ -164,12 +165,11 @@ pipeline {
     post {
         success {
             echo '✅ DEPLOYMENT SUCCESSFUL!'
-            echo '🌐 Application: http://localhost:8087'
+            echo '🌐 Access the app at: http://localhost:8087'
         }
         failure {
             echo '❌ DEPLOYMENT FAILED!'
-            # Corrected command from docker-compose to docker compose
-            sh 'docker compose logs --tail=50 || true'
+            sh 'docker compose logs --tail=100 || true'
         }
         always {
             sh 'docker image prune -f || true'
