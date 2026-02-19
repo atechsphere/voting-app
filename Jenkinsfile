@@ -74,7 +74,8 @@ pipeline {
                 script {
                     sh '''
                         echo "Checking App (Waiting for Migrations to finish)..."
-                        for i in {1..30}; do
+                        # Use standard sequence for better compatibility
+                        for i in $(seq 1 30); do
                             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8087/ || echo "000")
                             if [ "$HTTP_CODE" = "200" ]; then
                                 echo "✅ SUCCESS: App is UP!"
