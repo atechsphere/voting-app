@@ -9,25 +9,15 @@ pipeline {
     }
     
     stages {
-        stage('Cleanup Existing Infrastructure') {
+        stage('Cleanup Infrastructure') {
             steps {
-                echo '🧹 Cleaning up existing infrastructure...'
+                echo '🧹 Wiping old environment for a clean start...'
                 script {
                     sh '''
-                        echo "=== Stopping and Removing All Components ==="
                         docker stop voting-app voting-mysql registry 2>/dev/null || true
                         docker rm voting-app voting-mysql registry 2>/dev/null || true
-                        
-                        echo "=== Removing Application Images ==="
-                        docker rmi localhost:5000/voting-app:latest 2>/dev/null || true
-                        docker rmi localhost:5000/mysql:8.0 2>/dev/null || true
-                        
-                        echo "=== Removing Volumes and Networks ==="
                         docker volume rm voting_db_data_v2 2>/dev/null || true
-                        docker volume rm registry_data 2>/dev/null || true
                         docker network rm voting-net-v2 2>/dev/null || true
-                        
-                        echo "=== Cleanup complete ==="
                     '''
                 }
             }
@@ -35,15 +25,8 @@ pipeline {
         
         stage('Setup Local Registry') {
             steps {
-                echo '📦 Setting up local Docker registry...'
-                script {
-                    sh '''
-                        docker volume create registry_data || true
-                        docker run -d -p 5000:5000 --name registry --restart unless-stopped \
-                            -v registry_data:/var/lib/registry registry:2 2>/dev/null || true
-                        sleep 5
-                    '''
-                }
+                sh 'docker run -d -p 5000:5000 --name registry --restart unless-stopped registry:2 2>/dev/null || true'
+                sleep 5
             }
         }
         
@@ -53,123 +36,91 @@ pipeline {
             }
         }
         
-        stage('Restore Dependencies') {
+        stage('Restore & Build App') {
             steps {
                 dir('VotingApp') {
                     sh 'dotnet restore'
-                }
-            }
-        }
-        
-        stage('Build Application') {
-            steps {
-                dir('VotingApp') {
                     sh 'dotnet build --configuration Release --no-restore'
                 }
             }
         }
         
-        stage('Build Docker Images') {
+        stage('Build & Push Docker Images') {
             steps {
                 script {
                     dir('VotingApp') {
-                        sh "docker build -t ${APP_IMAGE}:${IMAGE_TAG} -t ${APP_IMAGE}:latest ."
+                        sh "docker build -t ${APP_IMAGE}:latest -t ${APP_IMAGE}:${IMAGE_TAG} ."
                     }
                     sh """
                         docker pull mysql:8.0
                         docker tag mysql:8.0 ${MYSQL_IMAGE}:8.0
-                        docker tag mysql:8.0 ${MYSQL_IMAGE}:latest
+                        docker push ${APP_IMAGE}:latest
+                        docker push ${MYSQL_IMAGE}:8.0
                     """
                 }
             }
         }
         
-        stage('Push to Local Registry') {
-            steps {
-                sh """
-                    docker push ${APP_IMAGE}:${IMAGE_TAG}
-                    docker push ${APP_IMAGE}:latest
-                    docker push ${MYSQL_IMAGE}:8.0
-                    docker push ${MYSQL_IMAGE}:latest
-                """
-            }
-        }
-        
-        stage('Deploy with Docker Compose') {
+        stage('Deploy Application') {
             steps {
                 script {
                     sh '''
-                        # Ensure no manual network exists so Compose can create it with correct labels
-                        docker network rm voting-net-v2 2>/dev/null || true
                         docker compose pull
                         docker compose up -d
-                        echo "Waiting for services to initialize..."
-                        sleep 20
+                        echo "⏳ Waiting 45 seconds for MySQL Init and EF Migrations..."
+                        sleep 45
                     '''
                 }
             }
         }
         
-        stage('Wait for MySQL') {
+        stage('Wait for MySQL Health') {
             steps {
                 script {
                     sh '''
-                        echo "Checking MySQL health..."
-                        for i in {1..30}; do
+                        for i in {1..20}; do
                             if docker exec voting-mysql mysqladmin ping -h localhost -u root -pRootPass123! 2>/dev/null; then
-                                echo "✓ MySQL is ready"
+                                echo "✅ MySQL is responding!"
                                 exit 0
                             fi
-                            sleep 2
+                            echo "Waiting for MySQL socket..."
+                            sleep 3
                         done
-                        echo "❌ MySQL failed to start"
                         exit 1
                     '''
                 }
             }
         }
         
-        stage('Wait for Application') {
+        stage('Wait for Voting App') {
             steps {
                 script {
                     sh '''
-                        echo "Checking Application health at http://localhost:8087..."
-                        for i in {1..30}; do
-                            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8087/ 2>/dev/null || echo "000")
-                            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
-                                echo "✓ Application is ready (HTTP $HTTP_CODE)"
+                        for i in {1..20}; do
+                            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8087/ || echo "000")
+                            if [ "$HTTP_CODE" = "200" ]; then
+                                echo "✅ App is UP (HTTP 200)!"
                                 exit 0
                             fi
-                            sleep 3
+                            echo "Waiting for App (Current HTTP: $HTTP_CODE)..."
+                            sleep 5
                         done
-                        echo "❌ Application failed to respond"
+                        echo "❌ App failed to start. Logs:"
                         docker compose logs voting-app
                         exit 1
                     '''
                 }
             }
         }
-        
-        stage('Verify Deployment') {
-            steps {
-                sh '''
-                    echo "=== Final Container Status ==="
-                    docker compose ps
-                    echo "=== Registry Catalog ==="
-                    curl -s http://localhost:5000/v2/_catalog
-                '''
-            }
-        }
     }
     
     post {
         success {
-            echo '✅ DEPLOYMENT SUCCESSFUL!'
-            echo '🌐 Access the app at: http://localhost:8087'
+            echo '🚀 DEPLOYMENT SUCCESSFUL! Access at http://localhost:8087'
         }
         failure {
-            echo '❌ DEPLOYMENT FAILED!'
-            sh 'docker compose logs --tail=100 || true'
+            echo '❌ DEPLOYMENT FAILED! Dumping logs...'
+            sh 'docker compose logs --tail=100'
         }
         always {
             sh 'docker image prune -f || true'
