@@ -96,18 +96,23 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        for i in {1..20}; do
+                        echo "Checking App (Waiting for Migrations to finish)..."
+                        for i in {1..30}; do
                             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8087/ || echo "000")
                             if [ "$HTTP_CODE" = "200" ]; then
-                                echo "✅ App is UP (HTTP 200)!"
+                                echo "✅ SUCCESS: App is UP!"
                                 exit 0
                             fi
-                            echo "Waiting for App (Current HTTP: $HTTP_CODE)..."
-                            sleep 5
+                            echo "Status $HTTP_CODE... Migration in progress... (Try $i/30)"
+                            sleep 10
                         done
-                        echo "❌ App failed to start. Logs:"
                         docker compose logs voting-app
                         exit 1
+                    '''
+                }
+            }
+        }
+
                     '''
                 }
             }
