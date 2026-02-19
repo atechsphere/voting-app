@@ -1,25 +1,48 @@
-version: '3.8'
-
 services:
-  jenkins:
-    build: ./jenkins
-    container_name: jenkins
-    privileged: true
-    user: root
-    ports:
-      - "8080:8080"
-      - "50000:50000"
+  mysql:
+    image: localhost:5000/mysql:8.0
+    container_name: voting-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: RootPass123!
+      MYSQL_DATABASE: votingdb
+      MYSQL_USER: votinguser
+      MYSQL_PASSWORD: VotingPass123!
     volumes:
-      - jenkins_home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./Jenkinsfile:/var/jenkins_home/workspace/voting-app/Jenkinsfile
+      - db_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
     networks:
-      - jenkins-net
+      - voting-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pRootPass123!"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "3308:3306"
 
-volumes:
-  jenkins_home:
-    name: jenkins_home
+  voting-app:
+    image: localhost:5000/voting-app:latest
+    container_name: voting-app
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8087
+      # Updated Connection String
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=votingdb;User=votinguser;Password=VotingPass123!;AllowPublicKeyRetrieval=True;SSLMode=None;
+    ports:
+      - "8087:8087"
+    networks:
+      - voting-net
+    depends_on:
+      mysql:
+        condition: service_healthy
 
 networks:
-  jenkins-net:
+  voting-net:
     driver: bridge
+    name: voting-net-v2
+
+volumes:
+  db_data:
+    name: voting_db_data_v2
