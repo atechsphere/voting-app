@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-// 2. CONFIGURE DB CONTEXT (Fix: Use fixed version instead of AutoDetect)
+// 2. CONFIGURE DB CONTEXT (Fixed Version for MySQL 8.0)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 32))));
 
@@ -15,7 +15,7 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// 3. AUTOMATIC MIGRATIONS ON STARTUP (Fix: Retries for Connection)
+// 3. AUTOMATIC MIGRATIONS ON STARTUP (With Connection Retries)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -23,26 +23,22 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        
-        // Wait and retry up to 5 times if MySQL is still booting
         int retries = 5;
         while (retries > 0)
         {
-        // ... inside the retry loop in Program.cs
-        try {
-            // This ensures we ignore the "pending changes" warning during startup
-            context.Database.SetCommandTimeout(160); 
-            context.Database.Migrate(); 
-            logger.LogInformation("✅ Database migrated successfully.");
-            break; 
-        }
-
+            try 
+            {
+                context.Database.SetCommandTimeout(180);
+                context.Database.Migrate(); 
+                logger.LogInformation("✅ Database migrated successfully.");
+                break; 
             }
-            catch (Exception) {
+            catch (Exception ex) 
+            {
                 retries--;
                 if (retries == 0) throw;
-                logger.LogWarning("Waiting for MySQL... retrying.");
-                Thread.Sleep(5000);
+                logger.LogWarning($"Waiting for MySQL... {retries} retries left. Error: {ex.Message}");
+                Thread.Sleep(10000); // Wait 10s between attempts
             }
         }
     }
