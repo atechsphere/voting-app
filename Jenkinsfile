@@ -45,7 +45,7 @@ pipeline {
                     sh '''
                         docker volume create registry_data || true
                         docker run -d -p 5000:5000 --name registry --restart unless-stopped \
-                            -v registry_data:/var/lib/registry registry:2
+                            -v registry_data:/var/lib/registry registry:2 2>/dev/null || true
                         sleep 5
                     '''
                 }
@@ -104,7 +104,8 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        docker network create voting-net-v2 2>/dev/null || true
+                        # Remove the manual network create to avoid 'incorrect label' error
+                        docker network rm voting-net-v2 2>/dev/null || true
                         docker compose pull || true
                         docker compose up -d
                         sleep 20
@@ -167,7 +168,8 @@ pipeline {
         }
         failure {
             echo '❌ DEPLOYMENT FAILED!'
-            sh 'docker-compose logs --tail=50 || true'
+            # Corrected command from docker-compose to docker compose
+            sh 'docker compose logs --tail=50 || true'
         }
         always {
             sh 'docker image prune -f || true'
