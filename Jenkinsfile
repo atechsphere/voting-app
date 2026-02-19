@@ -105,8 +105,8 @@ pipeline {
                 script {
                     sh '''
                         docker network create voting-net-v2 2>/dev/null || true
-                        docker-compose pull || true
-                        docker-compose up -d
+                        docker compose pull || true
+                        docker compose up -d
                         sleep 20
                     '''
                 }
@@ -141,7 +141,7 @@ pipeline {
                             fi
                             sleep 3
                         done
-                        docker-compose logs --tail=30 voting-app
+                        docker compose logs --tail=30 voting-app
                         exit 1
                     '''
                 }
@@ -152,7 +152,7 @@ pipeline {
             steps {
                 sh '''
                     echo "=== Container Status ==="
-                    docker-compose ps
+                    docker compose ps
                     echo "=== Registry Contents ==="
                     curl -s http://localhost:5000/v2/_catalog
                 '''
